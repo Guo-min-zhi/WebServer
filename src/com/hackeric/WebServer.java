@@ -1,47 +1,58 @@
 package com.hackeric;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import com.utils.ServerInfo;
+
 public class WebServer {
 	
-	private int port = 8080;
+	private int port ;
+	private String location = null;
 	private ServerSocket server = null;
 	
 	public WebServer() {
 		try{
-			server = new ServerSocket(port, 5, InetAddress.getByName("127.0.0.1"));
-			System.out.println("·şÎñÆ÷Æô¶¯....");
+			//read the ip and port from setting file
+			port = ServerInfo.getServerPort();
+			location = ServerInfo.getServerLocation();
+			server = new ServerSocket(port, 5, InetAddress.getByName(location));
+			System.out.println("æœåŠ¡å™¨å¯åŠ¨...");
 		}catch(Exception e){
 			e.printStackTrace();
-			System.out.println("·şÎñÆ÷Æô¶¯Ê§°Ü....");
+			System.out.println("æœåŠ¡å™¨å¯åŠ¨å¤±è´¥....");
 		}
 	}
 	
 	public void listen(){
-		//¶àÁ¬½Ó
+		//å¤šç”¨æˆ·
 		while(true){
 			Socket socket = null;
 			try{
 				socket = server.accept();
-				System.out.println("»ñµÃĞÂµÄÁ¬½Ó");
+				System.out.println("è·å¾—ä¸€ä¸ªé“¾æ¥....");
 				
-				BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				PrintWriter out = new PrintWriter(socket.getOutputStream());
-
-				while(true){
-					String line = in.readLine();
-					System.out.println("ÊÕµ½£º"+line);
-					
-					out.println("Has received!");
-					out.flush();
-					
-					if(line.equals("end"))
-						break;
+				InputStream input = socket.getInputStream();
+				OutputStream output = socket.getOutputStream();
+				
+				StringBuffer str = new StringBuffer(2048);
+				byte[] b = new byte[2048];
+				int len = input.read(b);
+				int j;
+				for(j=0; j<len; j++){
+					str.append((char)b[j]);
+				}
+				//å°†æ”¶åˆ°çš„ä¿¡æ¯è¿›è¡Œè§£æ
+				Request request = new Request(str.toString());
+				String uri = request.parse();
+				
+				//å°†è·å¾—çš„uriå‘é€ç»™è¯·æ±‚æ–¹
+				if(uri != null){
+					Response response = new Response(output);
+					response.sendURIResource(uri);
 				}
 			}catch(Exception e){
 				e.printStackTrace();
